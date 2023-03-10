@@ -8,7 +8,7 @@
 * Note:
 *
 *******************************************************************************
-* Copyright 2022, Cypress Semiconductor Corporation (an Infineon company) or
+* Copyright 2022-2023, Cypress Semiconductor Corporation (an Infineon company) or
 * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
 *
 * This software, including source code, documentation and related
@@ -46,8 +46,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "cy_device_headers.h"
-#include "config.h"
 
+/* Size of the LOG file. Must be power of 2 and at least 512 bytes */
+#define CONFIG_LOG_FILE_SIZE                    2048u
 #define FILE_SYSTEM_ROOT_DIRECTORIES_ENTRIES    16
 #define FILE_SYSTEM_SECTORS_PER_FAT             4
 #define FILE_SYSTEM_SECTOR_SIZE                 512
@@ -61,6 +62,59 @@
 #define FILE_SYSTEM_BOOTSTRAP_SIZE              480
 #define FILE_SYSTEM_FILENAME_SIZE               11
 #define FILE_SYSTEM_RESERVED_SIZE               10
+
+/*******************************************************************************
+* Constants
+*******************************************************************************/
+/* Jump Bootstrap Address */
+#define FILE_SYSTEM_JUMP_BOOTSTRAP_VAL0     0xEB
+#define FILE_SYSTEM_JUMP_BOOTSTRAP_VAL1     0x3C
+#define FILE_SYSTEM_JUMP_BOOTSTRAP_VAL2     0x90
+
+/* Media Type
+ *  0xF8 - standard value for non-removable disks
+ *  0xF0 - non partitioned removable disks */
+#define FILE_SYSTEM_MEDIA_TYPE              0xF8
+
+/* FAT Area */
+#define FILE_SYSTEM_FAT_AREA_VAL0           0xF8
+#define FILE_SYSTEM_FAT_AREA_VAL1           0xFF
+#define FILE_SYSTEM_FAT_AREA_VAL2           0xFF
+#define FILE_SYSTEM_FAT_AREA_VAL3           0xFF
+#define FILE_SYSTEM_FAT_AREA_VAL4           0x0F
+
+/* Directory Attribute
+ * 0x01: Read Only
+ * 0x02: Hidden
+ * 0x03: System
+ * 0x08: Volume Label
+ * 0x10: Directory
+ * 0x20: Archive
+ * 0x0F: Long File Name */
+#define FILE_SYSTEM_ATTRIBUTE_DRIVE         0x28
+#define FILE_SYSTEM_ATTRIBUTE_LOG_FILE      0x01
+
+/* Time
+ * Bit 15-11: Hours in range from 0 to 23
+ * Bit 10-5:  Minutes in range from 0 to 59
+ * Bit 4-0:   2 second count in range of form 0 to 29 (0-58 seconds) */
+#define FILE_SYSTEM_TIME                    0x7B6E
+
+/* Date
+ * Bit 15-9: Count of years from 1980 in range of from 0 to 127 (1980-2107)
+ * Bit 8-5:  Month of year in range from 1 to 12
+ * Bit 4-0:  Day of month in range from 1 to 31 */
+#define FILE_SYSTEM_DATE                    0x42B6
+
+/* Cluster Address for the Log file */
+#define FILE_SYSTEM_LOG_FILE_ADDRESS        2
+
+/* File name and Extension define */
+#define FILE_NAME_DEF(NAME,EXT) (NAME EXT)
+
+/* Initial Log message in the LOG file. If not used, comment the line below.
+ * Limited to the size of the LOG file */
+#define CONFIG_LOG_MESSAGE          "PMG1 MSC Device Content:"
 
 typedef struct
 {

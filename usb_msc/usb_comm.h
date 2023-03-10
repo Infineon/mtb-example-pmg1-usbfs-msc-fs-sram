@@ -1,13 +1,14 @@
 /*****************************************************************************
-* File Name: config.h
+* File Name: usb_comm.h
 *
 * Description:
-*  Application configuration constants.
+*  This file contains the function prototypes and constants used in
+*  the usb_comm.c.
 *
 * Note:
 *
 *******************************************************************************
-* Copyright 2022, Cypress Semiconductor Corporation (an Infineon company) or
+* Copyright 2022-2023, Cypress Semiconductor Corporation (an Infineon company) or
 * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
 *
 * This software, including source code, documentation and related
@@ -39,28 +40,36 @@
 * so agrees to indemnify Cypress against all liability.
 *******************************************************************************/
 
-#ifndef CONFIG_H_
-#define CONFIG_H_
+#ifndef USB_COMM_H_
+#define USB_COMM_H_
+
+#include "cy_usb_dev.h"
+#include "cy_usb_dev_msc.h"
 
 /*******************************************************************************
-* Configuration Constants
+* Constants
 ********************************************************************************/
-/* Size of the LOG file. Must be power of 2 and at least 512 bytes */
-#define CONFIG_LOG_FILE_SIZE        2048u
+#define MSC_OUT_ENDPOINT_ADDR   0x02
+#define MSC_IN_ENDPOINT_ADDR    0x81
+#define MSC_OUT_ENDPOINT        0x02
+#define MSC_IN_ENDPOINT         0x01
 
-/* Name of the LOG file. Must have 8 characters and no special characters.
- * If the name has less than 8 characters, fill it up with spaces */
-#define CONFIG_LOG_FILE_NAME        "LOG     "
+#define USB_COMM_DEVICE_ID          0
+#define USB_COMM_SUSPEND_COUNT      3
+#define USB_COMM_CBW_FLAG_DIR_IN    0x80
+#define USB_COMM_CBS_PHASE_ERROR    0x02
+#define USB_COMM_TIMEOUT            2000
+#define USB_TIMER_INTR_PRIORITY     (3u)
 
-/* Extension of the LOG file. Must have 3 characters */
-#define CONFIG_LOG_FILE_EXTENSION   "TXT"
+/*******************************************************************************
+* USB Communication Functions
+*******************************************************************************/
+void     usb_comm_init(void);
+void     usb_comm_connect(void);
+void     usb_comm_link_fs(uint8_t *fs);
+bool     usb_comm_is_ready(void);
+void     usb_comm_refresh(void);
+void     usb_comm_process(void);
 
-/* Name of the Mass Storage Drive. Must have 8 characters and no special characters.
- * If the name has less than 8 characters, fill it up with spaces */
-#define CONFIG_DRIVE_NAME           "PMG1 Drive"
 
-/* Initial Log message in the LOG file. If not used, comment the line below. 
- * Limited to the size of the LOG file */
-#define CONFIG_LOG_MESSAGE          "PMG1 MSC Device Content:"
-
-#endif /* CONFIG_H_ */
+#endif /* USB_COMM_H_ */

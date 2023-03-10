@@ -8,7 +8,7 @@
 * Note:
 *
 *******************************************************************************
-* Copyright 2022, Cypress Semiconductor Corporation (an Infineon company) or
+* Copyright 2022-2023, Cypress Semiconductor Corporation (an Infineon company) or
 * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
 *
 * This software, including source code, documentation and related
@@ -44,11 +44,12 @@
 #define USB_SCSI_H_
 
 #include "cy_usb_dev_msc.h"
-#include "config.h"
 
 /*******************************************************************************
 * Constants
 ********************************************************************************/
+/* Size of the LOG file. Must be power of 2 and at least 512 bytes */
+#define CONFIG_LOG_FILE_SIZE                        2048u
 #define MSC_TOTAL_MEM_SIZE                          600000u
 #define MSC_BLOCKSIZE                               512
 #define MSC_NUM_OF_BLOCKS                           (MSC_TOTAL_MEM_SIZE/MSC_BLOCKSIZE)

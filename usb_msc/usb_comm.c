@@ -8,7 +8,7 @@
 * Note:
 *
 *******************************************************************************
-* Copyright 2022, Cypress Semiconductor Corporation (an Infineon company) or
+* Copyright 2022-2023, Cypress Semiconductor Corporation (an Infineon company) or
 * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
 *
 * This software, including source code, documentation and related
@@ -47,15 +47,6 @@
 #include "cycfg.h"
 #include "cycfg_usbdev.h"
 
-/*******************************************************************************
-* Constants
-*******************************************************************************/
-#define USB_COMM_DEVICE_ID          0
-#define USB_COMM_SUSPEND_COUNT      3
-#define USB_COMM_CBW_FLAG_DIR_IN    0x80
-#define USB_COMM_CBS_PHASE_ERROR    0x02
-#define USB_COMM_TIMEOUT            2000
-#define USB_TIMER_INTR_PRIORITY     (3u)
 /*******************************************************************************
 * Local USB Callbacks
 *******************************************************************************/
@@ -434,16 +425,16 @@ static cy_en_usb_dev_status_t usb_msc_in_requests(cy_stc_usb_dev_msc_context_t *
 *   Success if valid.
 * 
 *******************************************************************************/
-uint8 is_command_block_wrapper_valid(cy_stc_usb_dev_msc_context_t *context)
+uint8_t is_command_block_wrapper_valid(cy_stc_usb_dev_msc_context_t *context)
 {
     cy_en_usb_dev_status_t validStatus = CY_USB_DEV_BAD_PARAM;
-    uint8 index = 0;
+    uint8_t index = 0;
 
     for(index = 0; index < CY_USB_DEV_MSC_CMD_BLOCK_SIZE; index++)
     {
         /* Copy all contents from EP buffer to structure. May replace with DMA,
          * need to validate if efficiency can be increased in that way. */
-        *((uint8 *)&context->cmd_block + index) = context->out_buffer[index];
+        *((uint8_t *)&context->cmd_block + index) = context->out_buffer[index];
     }
 
     if(context->cmd_block.signature == MSC_CBW_SIGNATURE)

@@ -8,7 +8,7 @@
 *
 *
 *******************************************************************************
-* Copyright 2022, Cypress Semiconductor Corporation (an Infineon company) or
+* Copyright 2022-2023, Cypress Semiconductor Corporation (an Infineon company) or
 * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
 *
 * This software, including source code, documentation and related
@@ -48,15 +48,18 @@
 #include "file_system.h"
 #include "usb_comm.h"
 #include <stdio.h>
+#include <inttypes.h>
 
 /*******************************************************************************
 * Macros
 ********************************************************************************/
-#define MESSAGE_TEMPLATE             "\r\n> Button press %d time(s)"
-#define MESSAGE_SIZE                 32u
 
 #define USER_BUTTON_INTR_PRIORITY    (3u)
 #define SW_DEBOUNCE_DELAY            (25u)
+#define CY_ASSERT_FAILED             (0u)
+
+/* Debug print macro to enable UART print */
+#define DEBUG_PRINT                  (0u)
 
 /*******************************************************************************
 * Function Prototypes
@@ -67,7 +70,7 @@ static void user_btn_isr(void);
 * Global Variables
 ********************************************************************************/
 /* Pointer to the emulated file system */
-uint8 *emulated_memory;
+uint8_t *emulated_memory;
 
 /* Flag to indicate when the user button is pressed */
 volatile bool button_flag = false;
@@ -76,13 +79,50 @@ volatile bool button_flag = false;
 uint16_t button_count = 0;
 
 /* String to be written to the file system */
-char log_message[MESSAGE_SIZE];
+char log_message[32u];
 
 /* User Button Interrupt Configuration */
 const cy_stc_sysint_t user_button_interrupt_cfg = {
-        .intrSrc = CYBSP_USER_BTN_IRQ,              /* Source of interrupt signal */
-        .intrPriority = USER_BUTTON_INTR_PRIORITY   /* Interrupt priority */
+    .intrSrc = CYBSP_USER_BTN_IRQ,              /* Source of interrupt signal */
+    .intrPriority = USER_BUTTON_INTR_PRIORITY   /* Interrupt priority */
 };
+
+#if DEBUG_PRINT
+
+/* Structure for UART context */
+cy_stc_scb_uart_context_t UART_context;
+
+/* Variable used for tracking the print status */
+volatile bool ENTER_LOOP = true;
+
+/*******************************************************************************
+* Function Name: check_status
+********************************************************************************
+* Summary:
+*  Prints the error message.
+*
+* Parameters:
+*  error_msg - message to print if any error encountered.
+*  status - status obtained after evaluation.
+*
+* Return:
+*  void
+*
+*******************************************************************************/
+void check_status(char *message, cy_rslt_t status)
+{
+    char error_msg[50];
+
+    sprintf(error_msg, "Error Code: 0x%08" PRIX32 "\n", status);
+
+    Cy_SCB_UART_PutString(CYBSP_UART_HW, "\r\n=====================================================\r\n");
+    Cy_SCB_UART_PutString(CYBSP_UART_HW, "\nFAIL: ");
+    Cy_SCB_UART_PutString(CYBSP_UART_HW, message);
+    Cy_SCB_UART_PutString(CYBSP_UART_HW, "\r\n");
+    Cy_SCB_UART_PutString(CYBSP_UART_HW, error_msg);
+    Cy_SCB_UART_PutString(CYBSP_UART_HW, "\r\n=====================================================\r\n");
+}
+#endif
 
 /*******************************************************************************
 * Function Name: main
@@ -103,6 +143,7 @@ const cy_stc_sysint_t user_button_interrupt_cfg = {
 int main(void)
 {
     cy_rslt_t result;
+    cy_en_sysint_status_t intr_result;
 
     /* Initialize the device and board peripherals */
     result = cybsp_init() ;
@@ -110,14 +151,35 @@ int main(void)
     /* Board init failed. Stop program execution */
     if (result != CY_RSLT_SUCCESS)
     {
-        CY_ASSERT(0);
+        CY_ASSERT(CY_ASSERT_FAILED);
     }
+
+#if DEBUG_PRINT
+    /* Configure and enable the UART peripheral */
+    Cy_SCB_UART_Init(CYBSP_UART_HW, &CYBSP_UART_config, &UART_context);
+    Cy_SCB_UART_Enable(CYBSP_UART_HW);
+
+    /* Sequence to clear screen */
+    Cy_SCB_UART_PutString(CYBSP_UART_HW, "\x1b[2J\x1b[;H");
+
+    /* Print "USB MSC File System in SRAM" */
+    Cy_SCB_UART_PutString(CYBSP_UART_HW, "****************** ");
+    Cy_SCB_UART_PutString(CYBSP_UART_HW, "PMG1 MCU: USB MSC File System in SRAM");
+    Cy_SCB_UART_PutString(CYBSP_UART_HW, "****************** \r\n\n");
+#endif
 
     /* Enable global interrupts */
     __enable_irq();
 
     /* Initialize User Button interrupt */
-    Cy_SysInt_Init(&user_button_interrupt_cfg, &user_btn_isr);
+    intr_result = Cy_SysInt_Init(&user_button_interrupt_cfg, &user_btn_isr);
+    if (intr_result != CY_SYSINT_SUCCESS)
+    {
+#if DEBUG_PRINT
+        check_status("API Cy_SysInt_Init failed with error code", intr_result);
+#endif
+        CY_ASSERT(CY_ASSERT_FAILED);
+    }
 
     /* Enable User Button interrupt */
     NVIC_EnableIRQ(user_button_interrupt_cfg.intrSrc);
@@ -146,7 +208,7 @@ int main(void)
             Cy_SysLib_Delay(SW_DEBOUNCE_DELAY);
 
             /* Build the message */
-            sprintf(log_message, MESSAGE_TEMPLATE, ++button_count);
+            sprintf(log_message, "\r\n> Button press %d time(s)", ++button_count);
 
             /* Write to the file system */
             if (false == file_system_write(log_message, strlen(log_message)))
@@ -164,6 +226,13 @@ int main(void)
             /* Clear flag */
             button_flag = false;
         }
+#if DEBUG_PRINT
+        if (ENTER_LOOP)
+        {
+            Cy_SCB_UART_PutString(CYBSP_UART_HW, "Entered for loop\r\n");
+            ENTER_LOOP = false;
+        }
+#endif
     }
 }
 
